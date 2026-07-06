@@ -1,0 +1,9 @@
+# Active when the backend runs as a container inside the Compose network
+# (see infra/docker-compose.yml) — datasource host is the Postgres service
+# name rather than localhost.
+server:
+  port: 8080
+
+logging:
+  level:
+    com.documind: INFO

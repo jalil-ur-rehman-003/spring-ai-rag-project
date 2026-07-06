@@ -1,0 +1,43 @@
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 360px;
+
+  label {
+    font-weight: 600;
+    margin-top: 0.5rem;
+  }
+
+  input {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.6rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+}
+
+.form-error {
+  color: #b00020;
+  margin: 0.25rem 0 0;
+}
+
+.auth-form-footer {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+}

@@ -1,0 +1,26 @@
+# Environment secrets
+.env
+infra/.env
+
+# Backend (Maven / Java)
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+backend/*.log
+
+# Frontend (Angular / Node)
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code harness state
+.claude/

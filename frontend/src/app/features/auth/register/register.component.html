@@ -1,0 +1,26 @@
+<div class="auth-page">
+  <form class="auth-form" [formGroup]="registerForm" (ngSubmit)="submitRegistration()">
+    <h1>Create your organization</h1>
+
+    <label for="organizationName">Organization name</label>
+    <input id="organizationName" type="text" formControlName="organizationName" />
+
+    <label for="adminEmail">Admin email</label>
+    <input id="adminEmail" type="email" formControlName="adminEmail" autocomplete="email" />
+
+    <label for="adminPassword">Admin password</label>
+    <input id="adminPassword" type="password" formControlName="adminPassword" autocomplete="new-password" />
+
+    @if (submissionError()) {
+      <p class="form-error">{{ submissionError() }}</p>
+    }
+
+    <button type="submit" [disabled]="isSubmitting()">
+      {{ isSubmitting() ? 'Creating…' : 'Create organization' }}
+    </button>
+
+    <p class="auth-form-footer">
+      Already have an account? <a routerLink="/login">Sign in</a>
+    </p>
+  </form>
+</div>

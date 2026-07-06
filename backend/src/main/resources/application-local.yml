@@ -1,0 +1,9 @@
+# Active when running the backend directly (e.g. from an IDE) against a
+# Postgres instance started manually or via `docker compose up postgres`,
+# rather than the fully containerized stack.
+server:
+  port: 8080
+
+logging:
+  level:
+    com.documind: DEBUG

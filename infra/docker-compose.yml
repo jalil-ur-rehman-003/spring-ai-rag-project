@@ -1,0 +1,91 @@
+name: documind
+
+services:
+  # PostgreSQL with the pgvector extension pre-installed, backing both the
+  # relational schema and document_chunk's embedding vectors.
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${DB_NAME:-documind}
+      POSTGRES_USER: ${DB_USERNAME:-documind}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-documind} -d ${DB_NAME:-documind}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # S3-compatible object storage standing in for AWS S3 in local/dev
+  # environments. The backend's ObjectStorageAdapter targets the S3 API, so no
+  # code changes are needed to point at real S3 in production.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Malware scanning sidecar for uploaded files. The backend calls this over
+  # its TCP protocol (INSTREAM) as an early ingestion-pipeline stage.
+  clamav:
+    image: clamav/clamav:latest
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-documind}
+      DB_USERNAME: ${DB_USERNAME:-documind}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY must be set}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY must be set}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:?VOYAGE_API_KEY must be set}
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CORS_ALLOWED_ORIGIN: http://localhost:4200
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
+  clamav_data:
