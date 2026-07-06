@@ -1,0 +1,48 @@
+name: Container Image Vulnerability Scan
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-scan:
+    name: Scan ${{ matrix.component }} image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Built locally (not pushed) purely so Trivy has an image to scan -- actual publishing to a
+      # registry only happens in docker-publish.yml, gated on this scan passing.
+      - name: Build ${{ matrix.component }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component }}
+          push: false
+          load: true
+          tags: documind-${{ matrix.component }}:scan
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: image
+          image-ref: documind-${{ matrix.component }}:scan
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-${{ matrix.component }}-image-results.sarif
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.component }}-image-results.sarif
+          category: trivy-${{ matrix.component }}-image

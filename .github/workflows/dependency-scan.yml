@@ -1,0 +1,39 @@
+name: Dependency Vulnerability Scan
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Weekly scan catches newly-published CVEs against dependencies that haven't changed.
+    - cron: "0 4 * * 1"
+
+jobs:
+  trivy-fs-scan:
+    name: Trivy filesystem scan (Maven + npm)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Trivy's fs scanner reads pom.xml and package-lock.json directly -- no build step needed
+      # first, since it resolves the dependency tree from the lockfiles/manifests themselves.
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          # Fails the workflow (and therefore the PR check / merge gate) on any CRITICAL/HIGH finding.
+          exit-code: "1"
+          format: sarif
+          output: trivy-dependency-results.sarif
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-dependency-results.sarif

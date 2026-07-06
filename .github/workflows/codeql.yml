@@ -1,0 +1,50 @@
+name: CodeQL SAST
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Weekly scan catches new CodeQL query-pack findings even when no code has changed.
+    - cron: "0 3 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # CodeQL's "javascript" analyzer covers TypeScript too.
+        language: [java-kotlin, javascript]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      # Java requires an actual compile so CodeQL can build its database from real bytecode;
+      # autobuild handles this via the pom.xml. JavaScript/TypeScript needs no build step.
+      - name: Autobuild
+        if: matrix.language == 'java-kotlin'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
