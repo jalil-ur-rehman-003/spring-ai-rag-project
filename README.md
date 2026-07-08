@@ -84,32 +84,36 @@ A few decisions worth calling out, because they weren't the default/obvious path
 - Docker (for Postgres/pgvector, MinIO, ClamAV via Compose)
 - An [Anthropic API key](https://console.anthropic.com/) and a [Voyage AI API key](https://www.voyageai.com/)
 
-### 1. Start infrastructure
+### 1. Configure environment
 
 ```bash
 cd infra
 cp .env.example .env   # fill in DB_PASSWORD, MINIO credentials, JWT_SIGNING_KEY, ANTHROPIC_API_KEY, VOYAGE_API_KEY
-docker compose up -d postgres minio clamav
+cd ..
 ```
 
-### 2. Run the backend
+### 2. Start everything (Windows)
+
+```bat
+start.bat
+```
+
+Brings up the Docker infra (Postgres/pgvector, MinIO, ClamAV), waits for Postgres to report healthy, then launches the backend (Spring Boot, `local` profile) and frontend (Angular dev server) each in their own minimized window, logging to `backend/backend-run.log` and `frontend/frontend-run.log`. If Maven isn't on your `PATH`, set `MVN_CMD` to the full path of `mvn.cmd` first. Run `stop.bat` to shut everything back down (stops the backend/frontend processes and the Docker containers).
+
+### Or: run each piece manually
 
 ```bash
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=local
+# Infra
+cd infra && docker compose up -d postgres minio clamav
+
+# Backend (separate terminal)
+cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+# Frontend (separate terminal)
+cd frontend && npm ci && npm start
 ```
 
-The backend runs Flyway migrations automatically on startup. Create the MinIO bucket referenced by your config before your first upload, via the MinIO console at `localhost:9001`.
-
-### 3. Run the frontend
-
-```bash
-cd frontend
-npm ci
-npm start
-```
-
-Visit `http://localhost:4200`, register an organization, and upload a PDF.
+The backend runs Flyway migrations automatically on startup. Create the MinIO bucket referenced by your config before your first upload, via the MinIO console at `localhost:9001`. Visit `http://localhost:4200`, register an organization, and upload a PDF.
 
 ### Or: run everything in Docker
 
