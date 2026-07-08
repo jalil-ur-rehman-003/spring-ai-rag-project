@@ -102,6 +102,6 @@ class ChatSessionControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/chat/sessions")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

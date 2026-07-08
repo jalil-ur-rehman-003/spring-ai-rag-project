@@ -142,7 +142,7 @@ class DocumentControllerIntegrationTest {
         );
 
         mockMvc.perform(multipart("/api/v1/documents").file(pdfFile))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

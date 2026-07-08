@@ -13,12 +13,9 @@ export const routes: Routes = [
       import('./features/auth/register/register.component').then((module) => module.RegisterComponent),
   },
   {
-    // Placeholder landing page for authenticated users until the document-list feature (Phase 2) exists.
     path: 'documents',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/documents/document-list-placeholder.component').then(
-        (module) => module.DocumentListPlaceholderComponent
-      ),
+      import('./features/documents/document-list.component').then((module) => module.DocumentListComponent),
   },
 ];

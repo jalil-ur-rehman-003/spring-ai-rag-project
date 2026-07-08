@@ -31,9 +31,11 @@
   }
 }
 
-.form-error {
+.form-error,
+.field-error {
   color: #b00020;
   margin: 0.25rem 0 0;
+  font-size: 0.85rem;
 }
 
 .auth-form-footer {

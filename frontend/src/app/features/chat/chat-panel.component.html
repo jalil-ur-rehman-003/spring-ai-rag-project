@@ -1,0 +1,27 @@
+<div class="chat-panel">
+  <h2>Ask about your documents</h2>
+
+  <div class="message-list">
+    @for (message of messages(); track $index) {
+      <div class="message" [attr.data-role]="message.role">
+        <p [innerText]="message.content"></p>
+      </div>
+    }
+  </div>
+
+  @if (askError()) {
+    <p class="field-error">{{ askError() }}</p>
+  }
+
+  <form class="question-form" [formGroup]="questionForm" (ngSubmit)="submitQuestion()">
+    <input
+      type="text"
+      formControlName="question"
+      placeholder="Ask a question about your uploaded documents…"
+      autocomplete="off"
+    />
+    <button type="submit" [disabled]="isAsking()">
+      {{ isAsking() ? 'Asking…' : 'Ask' }}
+    </button>
+  </form>
+</div>

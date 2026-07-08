@@ -1,0 +1,77 @@
+.documents-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px dashed #999;
+  border-radius: 6px;
+}
+
+.upload-label {
+  font-weight: 600;
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+}
+
+.status-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  background: #eee;
+
+  &[data-status='READY'] {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &[data-status='FAILED'] {
+    background: #f8d7da;
+    color: #721c24;
+  }
+}
+
+.failure-reason {
+  display: block;
+  font-size: 0.8rem;
+  color: #b00020;
+}
+
+.empty-state {
+  color: #666;
+}
+
+.field-error {
+  color: #b00020;
+  margin: 0;
+  font-size: 0.85rem;
+}

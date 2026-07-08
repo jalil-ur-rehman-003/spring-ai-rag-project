@@ -7,10 +7,13 @@ const AUTH_ENDPOINTS_EXEMPT_FROM_BEARER_TOKEN = ['/auth/login', '/auth/register'
 
 /**
  * Attaches the current access token as a Bearer header to every outgoing API
- * request except the auth endpoints that must work without one. On a 401
- * (expired/invalid access token), attempts exactly one silent refresh-and-
- * retry before giving up and forcing a logout -- avoids infinite retry loops
- * if the refresh token itself has also expired or been revoked.
+ * request except the auth endpoints that must work without one. On a 401 or
+ * 403 (expired/invalid access token -- the backend's SecurityConfig maps an
+ * unauthenticated request to AuthorizationDeniedException, which
+ * GlobalExceptionHandler returns as 403, not 401, so both statuses must be
+ * treated as "possibly just an expired token"), attempts exactly one silent
+ * refresh-and-retry before giving up and forcing a logout -- avoids infinite
+ * retry loops if the refresh token itself has also expired or been revoked.
  */
 export const jwtInterceptor: HttpInterceptorFn = (request, next) => {
   const authService = inject(AuthService);
@@ -26,7 +29,7 @@ export const jwtInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(authorizedRequest).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401) {
+      if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
         return authService.refreshAccessToken().pipe(
           switchMap((refreshedTokens) =>
             next(request.clone({ setHeaders: { Authorization: `Bearer ${refreshedTokens.accessToken}` } }))

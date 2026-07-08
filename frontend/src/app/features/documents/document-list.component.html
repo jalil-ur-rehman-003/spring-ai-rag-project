@@ -1,0 +1,55 @@
+<div class="documents-page">
+  <header class="page-header">
+    <div>
+      <h1>Documents</h1>
+      <p>Organization id: {{ authService.currentOrganizationId() }} &middot; Role: {{ authService.currentRole() }}</p>
+    </div>
+    <button type="button" (click)="authService.logout()">Log out</button>
+  </header>
+
+  <section class="upload-section">
+    <label for="fileInput" class="upload-label">
+      {{ isUploading() ? 'Uploading…' : 'Upload a PDF document' }}
+    </label>
+    <input id="fileInput" type="file" accept="application/pdf" [disabled]="isUploading()" (change)="onFileSelected($event)" />
+    @if (uploadError()) {
+      <p class="field-error">{{ uploadError() }}</p>
+    }
+  </section>
+
+  <section class="document-list-section">
+    @if (documents().length === 0) {
+      <p class="empty-state">No documents uploaded yet.</p>
+    } @else {
+      <table class="document-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Size</th>
+            <th>Uploaded</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (document of documents(); track document.documentId) {
+            <tr>
+              <td>{{ document.title }}</td>
+              <td>
+                <span class="status-badge" [attr.data-status]="document.status">{{ document.status }}</span>
+                @if (document.status === 'FAILED' && document.failureReason) {
+                  <span class="failure-reason">{{ document.failureReason }}</span>
+                }
+              </td>
+              <td>{{ document.sizeBytes | number }} bytes</td>
+              <td>{{ document.createdAt | date: 'medium' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+
+  <section class="chat-section">
+    <documind-chat-panel />
+  </section>
+</div>

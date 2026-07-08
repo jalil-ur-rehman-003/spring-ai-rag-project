@@ -4,12 +4,27 @@
 
     <label for="organizationName">Organization name</label>
     <input id="organizationName" type="text" formControlName="organizationName" />
+    @if (registerForm.controls.organizationName.invalid && registerForm.controls.organizationName.touched) {
+      <p class="field-error">Organization name is required.</p>
+    }
 
     <label for="adminEmail">Admin email</label>
     <input id="adminEmail" type="email" formControlName="adminEmail" autocomplete="email" />
+    @if (registerForm.controls.adminEmail.touched && registerForm.controls.adminEmail.errors?.['required']) {
+      <p class="field-error">Admin email is required.</p>
+    }
+    @if (registerForm.controls.adminEmail.touched && registerForm.controls.adminEmail.errors?.['email']) {
+      <p class="field-error">Enter a valid email address.</p>
+    }
 
     <label for="adminPassword">Admin password</label>
     <input id="adminPassword" type="password" formControlName="adminPassword" autocomplete="new-password" />
+    @if (registerForm.controls.adminPassword.touched && registerForm.controls.adminPassword.errors?.['required']) {
+      <p class="field-error">Password is required.</p>
+    }
+    @if (registerForm.controls.adminPassword.touched && registerForm.controls.adminPassword.errors?.['minlength']) {
+      <p class="field-error">Password must be at least 12 characters.</p>
+    }
 
     @if (submissionError()) {
       <p class="form-error">{{ submissionError() }}</p>

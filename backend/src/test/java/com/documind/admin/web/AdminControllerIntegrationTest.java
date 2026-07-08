@@ -143,8 +143,8 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    void unauthenticatedRequestsAreForbiddenFromAdminEndpoints() throws Exception {
+    void unauthenticatedRequestsAreRejectedFromAdminEndpoints() throws Exception {
         mockMvc.perform(get("/api/v1/admin/usage"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
