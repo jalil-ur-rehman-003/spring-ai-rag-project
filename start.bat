@@ -17,6 +17,24 @@ if not exist "infra\.env" (
     exit /b 1
 )
 
+REM Load infra\.env (KEY=value per line) into this process's environment so
+REM the backend, launched below with mvn as a child process, inherits
+REM DB_PASSWORD/JWT_SIGNING_KEY/ANTHROPIC_API_KEY/VOYAGE_API_KEY etc. docker
+REM compose reads infra\.env on its own; a plain `mvn spring-boot:run` does
+REM not, so without this the backend starts with those variables empty.
+for /f "usebackq eol=# tokens=1,* delims==" %%K in ("infra\.env") do (
+    if not "%%K"=="" set "%%K=%%L"
+)
+
+REM docker-compose.yml maps MINIO_ROOT_USER/PASSWORD -> S3_ACCESS_KEY/
+REM S3_SECRET_KEY for its containerized backend service only; a locally-run
+REM backend needs the same mapping done here, plus S3_ENDPOINT pointed at
+REM localhost (not the "minio" hostname that only resolves inside Docker's
+REM network).
+if defined MINIO_ROOT_USER set "S3_ACCESS_KEY=%MINIO_ROOT_USER%"
+if defined MINIO_ROOT_PASSWORD set "S3_SECRET_KEY=%MINIO_ROOT_PASSWORD%"
+set "S3_ENDPOINT=http://localhost:9000"
+
 echo.
 echo [1/4] Starting infra containers (postgres, minio, clamav)...
 pushd infra
@@ -33,7 +51,7 @@ echo [2/4] Waiting for Postgres to report healthy...
 set "PG_READY="
 for /l %%I in (1,1,30) do (
     if not defined PG_READY (
-        for /f "delims=" %%S in ('docker inspect -f "{{.State.Health.Status}}" documind-postgres-1 2^>nul') do (
+        for /f "delims=" %%S in ('docker inspect -f "{{.State.Health.Status}}" documind-postgres-1 ^<nul 2^>nul') do (
             if "%%S"=="healthy" set "PG_READY=1"
         )
         if not defined PG_READY timeout /t 2 /nobreak >nul
@@ -45,33 +63,44 @@ if not defined PG_READY (
     echo       Postgres is healthy.
 )
 
-REM Locate a usable mvn. Prefers mvn on PATH; falls back to MVN_CMD if set
-REM (e.g. set MVN_CMD=C:\path\to\mvn.cmd before calling this script on a
-REM machine where Maven isn't on PATH).
-set "MVN_EXE=mvn"
-where mvn >nul 2>nul
-if errorlevel 1 (
-    if defined MVN_CMD (
-        set "MVN_EXE=%MVN_CMD%"
-    ) else (
-        echo.
-        echo [ERROR] mvn not found on PATH and MVN_CMD is not set.
-        echo Either add Maven to PATH, or set MVN_CMD to the full path of mvn.cmd.
-        exit /b 1
-    )
+REM Locate a usable mvn. Preference order: MVN_CMD env var (if set) -> mvn on
+REM PATH -> a well-known local install location (this repo has been run from
+REM a machine where Maven wasn't on PATH; see README). Backend startup is
+REM skipped (not fatal) if none of these resolve, so the frontend still comes
+REM up and you get a clear message instead of the whole script aborting.
+set "MVN_EXE="
+if defined MVN_CMD set "MVN_EXE=%MVN_CMD%"
+
+if not defined MVN_EXE (
+    where mvn >nul 2>nul
+    if not errorlevel 1 set "MVN_EXE=mvn"
+)
+
+if not defined MVN_EXE (
+    for /f "delims=" %%D in ('powershell -NoProfile -Command "(Get-ChildItem -Path \"$env:LOCALAPPDATA\maven\" -Recurse -Filter mvn.cmd -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName)"') do set "MVN_EXE=%%D"
 )
 
 echo.
-echo [3/4] Starting backend (Spring Boot, local profile)...
+if defined MVN_EXE goto :start_backend
+echo [3/4] Skipping backend - mvn not found on PATH, MVN_CMD not set, and no
+echo        local Maven install auto-detected under %%LOCALAPPDATA%%\maven.
+echo        Set MVN_CMD to the full path of mvn.cmd and re-run start.bat,
+echo        or start the backend manually - cd backend, then mvn spring-boot:run -Dspring-boot.run.profiles=local
+goto :start_frontend
+
+:start_backend
+echo [3/4] Starting backend - Spring Boot, local profile...
 del /q "backend\backend-pid.txt" >nul 2>nul
 powershell -NoProfile -Command ^
-    "$mvn = '%MVN_EXE%'; if ($mvn -eq 'mvn') { $resolved = (Get-Command mvn.cmd -ErrorAction SilentlyContinue).Source; if ($resolved) { $mvn = $resolved } }; $p = Start-Process -FilePath $mvn -ArgumentList 'spring-boot:run', '-Dspring-boot.run.profiles=local' -WorkingDirectory 'backend' -WindowStyle Minimized -RedirectStandardOutput 'backend\backend-run.log' -RedirectStandardError 'backend\backend-run.err.log' -PassThru; $p.Id | Out-File -FilePath 'backend\backend-pid.txt' -Encoding ascii -NoNewline"
+    "$p = Start-Process -FilePath '%MVN_EXE%' -ArgumentList 'spring-boot:run', '-Dspring-boot.run.profiles=local' -WorkingDirectory 'backend' -WindowStyle Minimized -RedirectStandardOutput 'backend\backend-run.log' -RedirectStandardError 'backend\backend-run.err.log' -PassThru; $p.Id | Out-File -FilePath 'backend\backend-pid.txt' -Encoding ascii -NoNewline"
 if exist "backend\backend-pid.txt" (
     set /p BACKEND_PID=<backend\backend-pid.txt
     echo       backend PID: !BACKEND_PID!
 ) else (
     echo       [WARN] could not capture backend PID - check backend\backend-run.log
 )
+
+:start_frontend
 
 echo.
 echo [4/4] Starting frontend (Angular dev server)...
