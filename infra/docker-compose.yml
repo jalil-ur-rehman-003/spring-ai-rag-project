@@ -67,7 +67,7 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
-      CORS_ALLOWED_ORIGIN: http://localhost:4200
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:4200}
     ports:
       - "8080:8080"
     depends_on:
