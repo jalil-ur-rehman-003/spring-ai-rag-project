@@ -22,9 +22,17 @@ REM the backend, launched below with mvn as a child process, inherits
 REM DB_PASSWORD/JWT_SIGNING_KEY/ANTHROPIC_API_KEY/VOYAGE_API_KEY etc. docker
 REM compose reads infra\.env on its own; a plain `mvn spring-boot:run` does
 REM not, so without this the backend starts with those variables empty.
-for /f "usebackq eol=# tokens=1,* delims==" %%K in ("infra\.env") do (
-    if not "%%K"=="" set "%%K=%%L"
-)
+REM Values may be wrapped in double quotes (e.g. VOYAGE_API_KEY="pa-...") -
+REM those quotes must be stripped, or the literal quote characters end up
+REM as part of the key/secret sent to the provider, which then rejects it
+REM as invalid (401) even though the underlying value is correct. Batch's
+REM own string handling can't reliably strip embedded quote characters, so
+REM PowerShell does the parsing and emits a `set "KEY=value"` script that
+REM this process then calls to populate its own environment.
+powershell -NoProfile -Command ^
+    "Get-Content 'infra\.env' | Where-Object { $_ -match '^[^#=]+=' } | ForEach-Object { $k,$v = $_.Split('=',2); $v = $v.Trim(); if ($v.Length -ge 2 -and $v.StartsWith('\"') -and $v.EndsWith('\"')) { $v = $v.Substring(1, $v.Length - 2) }; \"set `\"$k=$v`\"\" } | Set-Content -Encoding ascii 'backend\.env-vars.cmd'"
+call "backend\.env-vars.cmd"
+del /q "backend\.env-vars.cmd" >nul 2>nul
 
 REM docker-compose.yml maps MINIO_ROOT_USER/PASSWORD -> S3_ACCESS_KEY/
 REM S3_SECRET_KEY for its containerized backend service only; a locally-run
