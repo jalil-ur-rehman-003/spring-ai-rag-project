@@ -1,0 +1,10 @@
+# Production override for a public deployment (e.g. a bare Compute Engine
+# VM behind only ports 80/443). Local dev keeps docker-compose.yml's
+# 4200 host mapping unchanged; this file only remaps the frontend to the
+# standard HTTP port so the public URL doesn't need a :4200 suffix.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  frontend:
+    ports:
+      - "80:80"
