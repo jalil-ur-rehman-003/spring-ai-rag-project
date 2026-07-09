@@ -21,6 +21,7 @@ frontend/.angular/
 .idea/
 .vscode/
 *.iml
+*.code-workspace
 
 # OS
 .DS_Store
